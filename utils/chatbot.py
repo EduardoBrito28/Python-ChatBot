@@ -3,6 +3,7 @@ from langchain.vectorstores import FAISS
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
+from langchain_core.retrievers import BaseRetriever
 from utils import db
 
 import os
@@ -13,19 +14,40 @@ os.environ["OPENAI_API_KEY"] = (
 )
 
 
-def create_vectore(chunk):
-    embaddings = OpenAIEmbeddings()
-    vectorstore = FAISS.from_texts(texts=chunk, embedding=embaddings)
+def create_vectorstore_from_documents(documents):
+    # Gere embeddings para os documentos
+    embeddings = OpenAIEmbeddings()
+    # Crie o índice vetorial usando FAISS
+    vectorstore = FAISS.from_texts(texts=documents, embedding=embeddings)
     return vectorstore
 
+def get_retriever_from_vectorstore(vectorstore) -> BaseRetriever:
+    # Crie um retriever a partir do vectorstore
+    retriever = vectorstore.as_retriever()
+    return retriever
 
-def create_conversation_chain(vectorstore):
+
+def retrieve_relevant_documents(query):
+    # Recuperar documentos relevantes do MongoDB com base na consulta
+    documents_cursor = db.documents_collection.find({"content": {"$regex": query, "$options": "i"}})
+    documents = [doc['content'] for doc in documents_cursor]
+    # Crie o vectorstore a partir dos documentos
+    vectorstore = create_vectorstore_from_documents(documents)
+    # Obtenha o retriever a partir do vectorstore
+    retriever = get_retriever_from_vectorstore(vectorstore)
+    return retriever
+
+
+def generate_response(query, retriever):
+    # Gerar resposta com base nos documentos relevantes
     llm = ChatOpenAI()
     memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
     conversation_chain = ConversationalRetrievalChain.from_llm(
-        llm=llm, retriever=vectorstore.as_retriever(), memory=memory
+        llm=llm, retriever=retriever, memory=memory
     )
-    return conversation_chain
+    response = conversation_chain.run(input=query)
+    return response
+
 
 
 def save_chat(question, answer):

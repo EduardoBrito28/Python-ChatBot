@@ -1,7 +1,7 @@
 from PyPDF2 import PdfReader
 from langchain.text_splitter import CharacterTextSplitter
 from utils import db
-
+import hashlib
 
 def process_files(files):
     text = ""
@@ -19,6 +19,12 @@ def create_text_chunks(text):
     chunks = text_splitter.split_text(text)
     return chunks
 
+def generate_file_hash(file):
+    hasher = hashlib.md5()
+    buf = file.read()
+    hasher.update(buf)
+    file.seek(0)  # Redefine o ponteiro do arquivo para o início
+    return hasher.hexdigest()
 
 def save_document_metadata(filename, content, file_hash):
     document_data = {
