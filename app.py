@@ -5,26 +5,27 @@ import os
 import hashlib
 
 
-def load_stored_documents():
+def load_stored_documents(uploaded_files=None):
     """Carrega documentos armazenados localmente na pasta 'arquivos' e os processa para o chatbot."""
-    subpasta = os.path.join(os.getcwd(), "arquivos")
-    if not os.path.exists(subpasta):
-        os.makedirs(subpasta)
+    file_text = ""
+    if uploaded_files:
+        # Processa os arquivos carregados pelo usuário
+        file_text = text.process_files(uploaded_files)
+    else:
+        # Processa os arquivos já armazenados localmente
+        subpasta = os.path.join(os.getcwd(), "arquivos")
+        for filename in os.listdir(subpasta):
+            caminho_arquivo = os.path.join(subpasta, filename)
+            if filename.endswith(".pdf") or filename.endswith(".xlsx"):
+                with open(caminho_arquivo, "rb") as f:
+                    file_text += text.process_files([f])
+
+    if file_text:
+        chunks = text.create_text_chunks(file_text)
+        vectorstore = chatbot.create_vector(chunks)
+        return chatbot.create_conversation_chain(vectorstore)
+    else:
         return None
-
-    arquivos_existentes = [
-        os.path.join(subpasta, arquivo)
-        for arquivo in os.listdir(subpasta)
-        if arquivo.endswith(".pdf")
-    ]
-
-    if not arquivos_existentes:
-        return None
-
-    file_text = text.process_files(arquivos_existentes)
-    chunks = text.create_text_chunks(file_text)
-    vectorstore = chatbot.create_vector(chunks)
-    return chatbot.create_conversation_chain(vectorstore)
 
 
 def main():
@@ -33,6 +34,19 @@ def main():
 
     if "conversation" not in st.session_state:
         st.session_state.conversation = load_stored_documents()
+
+    # Permitir o upload de múltiplos arquivos
+    uploaded_files = st.file_uploader(
+        "Carregue seus arquivos PDF ou Excel",
+        type=["pdf", "xlsx"],
+        accept_multiple_files=True,
+    )
+
+    if uploaded_files:
+        # Processar os arquivos carregados
+        conversation = load_stored_documents(uploaded_files)
+        st.session_state.conversation = conversation
+        st.success("Arquivos processados e adicionados!")
 
     user_question = st.text_input("Faça uma pergunta para mim!")
 

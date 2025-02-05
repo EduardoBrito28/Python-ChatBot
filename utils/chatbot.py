@@ -55,7 +55,3 @@ def create_conversation_chain(vectorstore):
 def save_chat(question, answer):
     chat_entry = {"question": question, "answer": answer}
     db.chats_collection.insert_one(chat_entry)
-
-
-def get_chat_history():
-    return list(db.chats_collection.find({}, {"_id": 0}))

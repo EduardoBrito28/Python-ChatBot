@@ -1,14 +1,25 @@
+# text.py
 from PyPDF2 import PdfReader
 from langchain.text_splitter import CharacterTextSplitter
 from utils import db
+import openpyxl
 
 
 def process_files(files):
     text = ""
     for file in files:
-        pdf = PdfReader(file)
-        for page in pdf.pages:
-            text += page.extract_text()
+        if file.name.endswith(".pdf"):
+            # Processar arquivos PDF
+            pdf = PdfReader(file)
+            for page in pdf.pages:
+                text += page.extract_text()
+        elif file.name.endswith(".xlsx"):
+            # Processar arquivos Excel
+            wb = openpyxl.load_workbook(file)
+            for sheet in wb.sheetnames:
+                ws = wb[sheet]
+                for row in ws.iter_rows(values_only=True):
+                    text += " ".join([str(cell) for cell in row if cell]) + "\n"
     return text
 
 
