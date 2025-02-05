@@ -13,9 +13,33 @@ os.environ["OPENAI_API_KEY"] = (
 )
 
 
-def create_vectore(chunk):
-    embaddings = OpenAIEmbeddings()
-    vectorstore = FAISS.from_texts(texts=chunk, embedding=embaddings)
+def create_vector(chunks):
+    embeddings = OpenAIEmbeddings()
+    index_dir = "faiss_index"
+
+    # Verificar se o diretório existe; caso contrário, criá-lo
+    if not os.path.exists(index_dir):
+        os.makedirs(index_dir)
+
+    # Caminho completo para o arquivo do índice
+    index_path = os.path.join(index_dir, "index.faiss")
+
+    # Verificar se o arquivo de índice existe
+    if os.path.exists(index_path):
+        # Carregar o índice existente
+        vectorstore = FAISS.load_local(
+            index_dir, embeddings=embeddings, allow_dangerous_deserialization=True
+        )
+    else:
+        # Criar um novo índice
+        vectorstore = FAISS.from_texts(chunks, embedding=embeddings)
+
+    # Adicionar novos textos ao índice
+    vectorstore.add_texts(texts=chunks)
+
+    # Salvar o índice atualizado
+    vectorstore.save_local(index_dir)
+
     return vectorstore
 
 

@@ -5,13 +5,36 @@ import os
 import hashlib
 
 
+def load_stored_documents():
+    """Carrega documentos armazenados localmente na pasta 'arquivos' e os processa para o chatbot."""
+    subpasta = os.path.join(os.getcwd(), "arquivos")
+    if not os.path.exists(subpasta):
+        os.makedirs(subpasta)
+        return None
+
+    arquivos_existentes = [
+        os.path.join(subpasta, arquivo)
+        for arquivo in os.listdir(subpasta)
+        if arquivo.endswith(".pdf")
+    ]
+
+    if not arquivos_existentes:
+        return None
+
+    file_text = text.process_files(arquivos_existentes)
+    chunks = text.create_text_chunks(file_text)
+    vectorstore = chatbot.create_vector(chunks)
+    return chatbot.create_conversation_chain(vectorstore)
+
+
 def main():
     st.set_page_config(page_title="UBV Chatbot", page_icon=":books:")
     st.header("Converse com seus arquivos")
-    user_question = st.text_input("Faça uma pergunta para mim!")
 
     if "conversation" not in st.session_state:
-        st.session_state.conversation = None
+        st.session_state.conversation = load_stored_documents()
+
+    user_question = st.text_input("Faça uma pergunta para mim!")
 
     if user_question:
         response = st.session_state.conversation(user_question)["chat_history"]
@@ -28,33 +51,29 @@ def main():
         )
 
         if st.button("Processar"):
+            novos_arquivos = []
             for pdf in pdf_docs:
-                # Calcular o hash do arquivo
                 pdf_hash = hashlib.md5(pdf.getvalue()).hexdigest()
 
-                # Verificar se o hash já existe no banco de dados
                 if text.document_exists(pdf_hash):
                     st.warning(
                         f"O arquivo '{pdf.name}' já foi carregado anteriormente."
                     )
                 else:
-                    # Definir o caminho completo para salvar o arquivo na subpasta
                     subpasta = os.path.join(os.getcwd(), "arquivos")
-                    if not os.path.exists(subpasta):
-                        os.makedirs(subpasta)
                     caminho_arquivo = os.path.join(subpasta, pdf.name)
 
-                    # Salvar o arquivo PDF na subpasta 'arquivos'
                     with open(caminho_arquivo, "wb") as f:
                         f.write(pdf.getbuffer())
 
+                    novos_arquivos.append(caminho_arquivo)
+
                     file_text = text.process_files([caminho_arquivo])
                     text.save_document_metadata(pdf.name, file_text, pdf_hash)
-                    chunks = text.create_text_chunks(file_text)
-                    vectorstore = chatbot.create_vectore(chunks)
-                    st.session_state.conversation = chatbot.create_conversation_chain(
-                        vectorstore
-                    )
+
+            if novos_arquivos:
+                st.session_state.conversation = load_stored_documents()
+                st.success("Novos arquivos processados e adicionados!")
 
         if st.button("Ver Histórico"):
             history = chatbot.get_chat_history()
