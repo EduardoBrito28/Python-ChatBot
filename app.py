@@ -89,12 +89,6 @@ def main():
                 st.session_state.conversation = load_stored_documents()
                 st.success("Novos arquivos processados e adicionados!")
 
-        if st.button("Ver Histórico"):
-            history = chatbot.get_chat_history()
-            for chat in history:
-                st.write(f"**Pergunta:** {chat['question']}")
-                st.write(f"**Resposta:** {chat['answer']}")
-
 
 if __name__ == "__main__":
     main()

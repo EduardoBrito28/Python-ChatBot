@@ -3,23 +3,42 @@ from PyPDF2 import PdfReader
 from langchain.text_splitter import CharacterTextSplitter
 from utils import db
 import openpyxl
+import os
 
 
 def process_files(files):
     text = ""
     for file in files:
-        if file.name.endswith(".pdf"):
-            # Processar arquivos PDF
-            pdf = PdfReader(file)
-            for page in pdf.pages:
-                text += page.extract_text()
-        elif file.name.endswith(".xlsx"):
-            # Processar arquivos Excel
-            wb = openpyxl.load_workbook(file)
-            for sheet in wb.sheetnames:
-                ws = wb[sheet]
-                for row in ws.iter_rows(values_only=True):
-                    text += " ".join([str(cell) for cell in row if cell]) + "\n"
+        if isinstance(file, str):
+            # Se for um caminho de arquivo no sistema
+            file_extension = os.path.splitext(file)[1].lower()
+            with open(file, "rb") as f:
+                if file_extension == ".pdf":
+                    pdf = PdfReader(f)
+                    for page in pdf.pages:
+                        page_text = page.extract_text()
+                        if page_text:
+                            text += page_text
+                elif file_extension == ".xlsx":
+                    wb = openpyxl.load_workbook(f)
+                    for sheet in wb.sheetnames:
+                        ws = wb[sheet]
+                        for row in ws.iter_rows(values_only=True):
+                            text += " ".join([str(cell) for cell in row if cell]) + "\n"
+        else:
+            # Se for um objeto de upload do Streamlit
+            if file.name.endswith(".pdf"):
+                pdf = PdfReader(file)
+                for page in pdf.pages:
+                    page_text = page.extract_text()
+                    if page_text:
+                        text += page_text
+            elif file.name.endswith(".xlsx"):
+                wb = openpyxl.load_workbook(file)
+                for sheet in wb.sheetnames:
+                    ws = wb[sheet]
+                    for row in ws.iter_rows(values_only=True):
+                        text += " ".join([str(cell) for cell in row if cell]) + "\n"
     return text
 
 
