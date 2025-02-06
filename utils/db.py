@@ -13,3 +13,21 @@ fs = gridfs.GridFS(db)
 # Coleções existentes
 documents_collection = db["documents"]
 chats_collection = db["chats"]
+users_collection = db["users"]
+
+def create_user(nome, email, departamento, empresa, senha, nivel_acesso):
+    if users_collection.find_one({"email": email}):
+        return False
+    user_data = {
+        "nome": nome,
+        "email": email,
+        "departamento": departamento,
+        "empresa": empresa,
+        "senha": senha,
+        "nivel_acesso": nivel_acesso
+    }
+    users_collection.insert_one(user_data)
+    return True
+
+def get_user(email):
+    return users_collection.find_one({"email": email})

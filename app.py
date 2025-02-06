@@ -3,6 +3,51 @@ from utils import chatbot, text
 from streamlit_chat import message
 import os
 import hashlib
+from pymongo import MongoClient
+
+# Verifica se o usuário está autenticado
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+    st.session_state.username = ""
+
+if not st.session_state.logged_in:
+    st.switch_page("Pages/login.py")
+
+st.set_page_config(page_title="UBV Chatbot", page_icon=":books:")
+
+# Menu superior
+st.markdown(
+    """
+    <style>
+        .topnav {
+            background-color: #333;
+            overflow: hidden;
+            padding: 10px;
+            width: 100%;
+        }
+        .topnav a {
+            float: left;
+            color: white;
+            text-align: center;
+            padding: 10px 15px;
+            text-decoration: none;
+            font-size: 17px;
+        }
+        .topnav a:hover {
+            background-color: #ddd;
+            color: black;
+        }
+    </style>
+    <div class="topnav">
+        <a href="app.py">Home</a>
+        <a href="register">Cadastro de Usuários</a>
+        <a href="login" onclick="window.location.reload();">Logout</a>
+    </div>
+""",
+    unsafe_allow_html=True,
+)
+
+st.header(f"Bem-vindo, {st.session_state.username}")
 
 
 def load_stored_documents(uploaded_files=None):
@@ -29,24 +74,8 @@ def load_stored_documents(uploaded_files=None):
 
 
 def main():
-    st.set_page_config(page_title="UBV Chatbot", page_icon=":books:")
-    st.header("Converse com seus arquivos")
-
     if "conversation" not in st.session_state:
         st.session_state.conversation = load_stored_documents()
-
-    # Permitir o upload de múltiplos arquivos
-    uploaded_files = st.file_uploader(
-        "Carregue seus arquivos PDF ou Excel",
-        type=["pdf", "xlsx"],
-        accept_multiple_files=True,
-    )
-
-    if uploaded_files:
-        # Processar os arquivos carregados
-        conversation = load_stored_documents(uploaded_files)
-        st.session_state.conversation = conversation
-        st.success("Arquivos processados e adicionados!")
 
     user_question = st.text_input("Faça uma pergunta para mim!")
 
