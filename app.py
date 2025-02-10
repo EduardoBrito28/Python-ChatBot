@@ -15,37 +15,6 @@ if not st.session_state.logged_in:
 
 st.set_page_config(page_title="UBV Chatbot", page_icon=":books:")
 
-# Menu superior
-st.markdown(
-    """
-    <style>
-        .topnav {
-            background-color: #333;
-            overflow: hidden;
-            padding: 10px;
-            width: 100%;
-        }
-        .topnav a {
-            float: left;
-            color: white;
-            text-align: center;
-            padding: 10px 15px;
-            text-decoration: none;
-            font-size: 17px;
-        }
-        .topnav a:hover {
-            background-color: #ddd;
-            color: black;
-        }
-    </style>
-    <div class="topnav">
-        <a href="app.py">Home</a>
-        <a href="register">Cadastro de Usuários</a>
-        <a href="login" onclick="window.location.reload();">Logout</a>
-    </div>
-""",
-    unsafe_allow_html=True,
-)
 
 st.header(f"Bem-vindo, {st.session_state.username}")
 
@@ -86,37 +55,6 @@ def main():
         # Salvar a pergunta e a resposta no MongoDB
         if response:
             chatbot.save_chat(user_question, response[-1].content)
-
-    with st.sidebar:
-        st.subheader("Seus arquivos")
-        pdf_docs = st.file_uploader(
-            "Carregue os seus arquivos em formato PDF", accept_multiple_files=True
-        )
-
-        if st.button("Processar"):
-            novos_arquivos = []
-            for pdf in pdf_docs:
-                pdf_hash = hashlib.md5(pdf.getvalue()).hexdigest()
-
-                if text.document_exists(pdf_hash):
-                    st.warning(
-                        f"O arquivo '{pdf.name}' já foi carregado anteriormente."
-                    )
-                else:
-                    subpasta = os.path.join(os.getcwd(), "arquivos")
-                    caminho_arquivo = os.path.join(subpasta, pdf.name)
-
-                    with open(caminho_arquivo, "wb") as f:
-                        f.write(pdf.getbuffer())
-
-                    novos_arquivos.append(caminho_arquivo)
-
-                    file_text = text.process_files([caminho_arquivo])
-                    text.save_document_metadata(pdf.name, file_text, pdf_hash)
-
-            if novos_arquivos:
-                st.session_state.conversation = load_stored_documents()
-                st.success("Novos arquivos processados e adicionados!")
 
 
 if __name__ == "__main__":
